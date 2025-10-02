@@ -1,19 +1,17 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { CitySelector } from "@/components/CitySelector";
 import { FeedFilters } from "@/components/FeedFilters";
 import { PostCard } from "@/components/PostCard";
 import { PoliticianCard } from "@/components/PoliticianCard";
 import { CreatePostButton } from "@/components/CreatePostButton";
-import { useNavigate } from "react-router-dom";
-import { User, LogIn } from "lucide-react";
+import { UserMenu } from "@/components/UserMenu";
 
 type FilterType = "todos" | "positivo" | "negativo" | "neutro";
 
 const Index = () => {
-  const navigate = useNavigate();
   const [currentCity, setCurrentCity] = useState("Parnamirim");
   const [activeFilter, setActiveFilter] = useState<FilterType>("todos");
+  const [isLoggedIn] = useState(true); // TODO: Replace with real auth state
 
   // Mock data - será substituído por dados reais do backend
   const mockPosts = [
@@ -87,14 +85,11 @@ const Index = () => {
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             VozCivica
           </h1>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/auth")}>
-              <LogIn className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-          </div>
+          <UserMenu 
+            isLoggedIn={isLoggedIn}
+            userName="Maria Silva"
+            userAvatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Maria"
+          />
         </div>
       </header>
 
@@ -116,7 +111,7 @@ const Index = () => {
               <PoliticianCard
                 key={politician.id}
                 {...politician}
-                onClick={() => navigate(`/politician/${politician.id}`)}
+                onClick={() => console.log("Navigate to politician", politician.id)}
               />
             ))}
           </div>
