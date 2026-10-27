@@ -97,10 +97,10 @@ const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").t
 
 // ---------- IBGE ----------
 async function syncIbge(db: SupabaseClient, uf: string) {
-  const est = await (await fetch(`${IBGE}/estados/${uf}`, { headers: UA })).json();
+  const est = await (await fetch(`${IBGE}/estados/${uf}`, { headers: UA, signal: AbortSignal.timeout(25000) })).json();
   if (!est?.id) throw new Error(`UF ${uf} não encontrada no IBGE`);
   await db.from("states").upsert({ ibge_code: est.id, uf: est.sigla, name: est.nome, source_key: "ibge_localidades", source_url: `${IBGE}/estados/${uf}`, collected_at: new Date().toISOString() }, { onConflict: "uf" });
-  const muns: { id: number; nome: string }[] = await (await fetch(`${IBGE}/estados/${uf}/municipios`, { headers: UA })).json();
+  const muns: { id: number; nome: string }[] = await (await fetch(`${IBGE}/estados/${uf}/municipios`, { headers: UA, signal: AbortSignal.timeout(25000) })).json();
   const { data: local } = await db.from("municipalities").select("id,name,ibge_code").eq("uf", uf);
   let updated = 0; const conflicts: string[] = [];
   for (const m of local ?? []) {
