@@ -20,7 +20,7 @@ type Row = {
   source_url: string;
   collected_at: string;
   politicians: { civil_name: string } | null;
-  mandates: { status: string }[];
+  mandates: { status: string } | { status: string }[] | null;
 };
 
 const statusLabel: Record<string, string> = {
@@ -57,7 +57,7 @@ const Person = ({ r }: { r: Row }) => (
         <Badge variant={r.outcome === "eleito" ? "default" : "secondary"}>
           {r.result_name ?? "Sem resultado"} ({r.round}º turno)
         </Badge>
-        {r.mandates?.[0] && <Badge variant="outline">{statusLabel[r.mandates[0].status]}</Badge>}
+        {(() => { const m = Array.isArray(r.mandates) ? r.mandates[0] : r.mandates; return m ? <Badge variant="outline">{statusLabel[m.status]}</Badge> : null; })()}
       </div>
     </div>
     {r.valid_votes != null && (
