@@ -71,15 +71,9 @@ export const NatalOfficials = () => {
   if (isLoading) return <Skeleton className="h-40 w-full" />;
   if (error || !data) return <p className="text-sm text-destructive">Não foi possível carregar os dados oficiais.</p>;
 
-  const latestRound = (code: number) => {
-    const rows = data.filter((r) => r.office_code === code);
-    const max = Math.max(...rows.map((r) => r.round));
-    return rows.filter((r) => r.round === max || (code !== 13 && r.round === 1 && !rows.some((x) => x.round === max && x.tse_candidate_seq === undefined)));
-  };
   const exec = data.filter((r) => r.office_code === 11 || r.office_code === 12);
   const elected = (code: number) => data.filter((r) => r.office_code === code && r.outcome === "eleito");
   const vereadores = data.filter((r) => r.office_code === 13);
-  void latestRound;
 
   return (
     <div className="space-y-3">

@@ -2,14 +2,14 @@ import { useState } from "react";
 import { CitySelector } from "@/components/CitySelector";
 import { FeedFilters } from "@/components/FeedFilters";
 import { PostCard } from "@/components/PostCard";
-import { PoliticianCard } from "@/components/PoliticianCard";
+import { NatalOfficials } from "@/components/NatalOfficials";
 import { CreatePostButton } from "@/components/CreatePostButton";
 import { UserMenu } from "@/components/UserMenu";
 
 type FilterType = "todos" | "positivo" | "negativo" | "neutro";
 
 const Index = () => {
-  const [currentCity, setCurrentCity] = useState("Parnamirim");
+  const [currentCity, setCurrentCity] = useState("Natal");
   const [activeFilter, setActiveFilter] = useState<FilterType>("todos");
   const [isLoggedIn] = useState(true); // TODO: Replace with real auth state
 
@@ -53,25 +53,6 @@ const Index = () => {
     },
   ];
 
-  const mockPoliticians = [
-    {
-      id: 1,
-      name: "Carlos Eduardo Alves",
-      role: "Prefeito",
-      party: "PSDB",
-      rating: 7.2,
-      term: "2021-2024",
-    },
-    {
-      id: 2,
-      name: "Fátima Bezerra",
-      role: "Governadora",
-      party: "PT",
-      rating: 6.8,
-      term: "2019-2026",
-    },
-  ];
-
   const filteredPosts =
     activeFilter === "todos"
       ? mockPosts
@@ -105,16 +86,12 @@ const Index = () => {
 
         {/* Politicians Section */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Gestores Públicos</h2>
-          <div className="grid gap-3">
-            {mockPoliticians.map((politician) => (
-              <PoliticianCard
-                key={politician.id}
-                {...politician}
-                onClick={() => console.log("Navigate to politician", politician.id)}
-              />
-            ))}
-          </div>
+          <h2 className="text-lg font-semibold mb-4">Políticos de {currentCity}</h2>
+          {currentCity === "Natal" ? (
+            <NatalOfficials />
+          ) : (
+            <p className="text-sm text-muted-foreground">Dados oficiais ainda não importados para {currentCity}.</p>
+          )}
         </section>
 
         {/* Feed Section */}
