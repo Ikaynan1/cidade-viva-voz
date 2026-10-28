@@ -20,7 +20,7 @@ type Row = {
   valid_votes: number | null;
   source_url: string;
   collected_at: string;
-  politicians: { civil_name: string } | null;
+  politicians: { civil_name: string; gender: string | null } | null;
   mandates: { status: string } | { status: string }[] | null;
 };
 
@@ -31,6 +31,16 @@ const statusLabel: Record<string, string> = {
   afastado: "Afastado",
   encerrado: "Mandato encerrado",
 };
+
+function officeLabel(row: Row) {
+  const gender = row.politicians?.gender?.trim().toLocaleLowerCase("pt-BR") ?? "";
+  const female = gender === "f" || gender.startsWith("femin");
+  const male = gender === "m" || gender.startsWith("mascul");
+  if (row.office_code === 11) return female ? "Prefeita" : "Prefeito";
+  if (row.office_code === 12) return female ? "Vice-prefeita" : male ? "Vice-prefeito" : "Vice-prefeito(a)";
+  if (row.office_code === 13) return female ? "Vereadora" : male ? "Vereador" : "Vereador(a)";
+  return row.office_name;
+}
 
 function useNatalElected() {
   return useQuery({
@@ -44,7 +54,7 @@ function useNatalElected() {
       if (municipalityError || !municipality) throw municipalityError ?? new Error("Natal não encontrado");
       const { data, error } = await supabase
         .from("candidacies")
-        .select("id,politician_id,ballot_name,office_code,office_name,party_acronym,ballot_number,round,outcome,result_name,valid_votes,source_url,collected_at,politicians(civil_name),mandates(status)")
+        .select("id,politician_id,ballot_name,office_code,office_name,party_acronym,ballot_number,round,outcome,result_name,valid_votes,source_url,collected_at,politicians(civil_name,gender),mandates(status)")
         .eq("municipality_id", municipality.id)
         .eq("outcome", "eleito")
         .order("valid_votes", { ascending: false, nullsFirst: false });
@@ -59,7 +69,10 @@ const Person = ({ row }: { row: Row }) => {
   return (
     <Card className="flex items-start justify-between gap-3 p-3">
       <div className="min-w-0">
-        <p className="truncate font-semibold">{row.ballot_name ?? row.politicians?.civil_name}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate font-semibold">{row.ballot_name ?? row.politicians?.civil_name}</p>
+          <Badge variant="secondary">{officeLabel(row)}</Badge>
+        </div>
         <p className="truncate text-xs text-muted-foreground">{row.politicians?.civil_name}</p>
         <div className="mt-1 flex flex-wrap gap-1">
           <Badge variant="outline">{row.party_acronym} · {row.ballot_number}</Badge>
@@ -78,13 +91,30 @@ export const NatalOfficials = () => {
   if (isLoading) return <Skeleton className="h-40 w-full" />;
   if (error || !data) return <p className="text-sm text-destructive">Não foi possível carregar os dados oficiais.</p>;
 
+  const prefeitura = data
+    .filter((row) => row.office_code === 11 || row.office_code === 12)
+    .sort((a, b) => a.office_code - b.office_code);
+  const camara = data
+    .filter((row) => row.office_code === 13)
+    .sort((a, b) => (b.valid_votes ?? 0) - (a.valid_votes ?? 0));
+  const outros = data.filter((row) => ![11, 12, 13].includes(row.office_code));
+
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground">Candidatos eleitos em 2024</h3>
-        {data.map((row) => <Person key={row.id} row={row} />)}
-        {data.length === 0 && <Card className="p-4 text-sm text-muted-foreground">Ainda não há candidatos eleitos carregados para Natal.</Card>}
-      </div>
+    <div className="space-y-5">
+      <section className="space-y-2" aria-labelledby="prefeitura-eleitos">
+        <h3 id="prefeitura-eleitos" className="font-semibold">Prefeitura de Natal</h3>
+        {prefeitura.map((row) => <Person key={row.id} row={row} />)}
+        {prefeitura.length === 0 && <Card className="p-4 text-sm text-muted-foreground">Não há eleitos da Prefeitura carregados.</Card>}
+      </section>
+      <section className="space-y-2" aria-labelledby="camara-eleitos">
+        <h3 id="camara-eleitos" className="font-semibold">Câmara Municipal</h3>
+        {camara.map((row) => <Person key={row.id} row={row} />)}
+        {camara.length === 0 && <Card className="p-4 text-sm text-muted-foreground">Não há vereadores eleitos carregados.</Card>}
+      </section>
+      {outros.length > 0 && <section className="space-y-2" aria-labelledby="outros-eleitos">
+        <h3 id="outros-eleitos" className="font-semibold">Outros cargos eleitos</h3>
+        {outros.map((row) => <Person key={row.id} row={row} />)}
+      </section>}
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         Fonte: TSE – Dados Abertos, Eleições Municipais 2024. Coletado em{" "}
         {data[0] ? new Date(data[0].collected_at).toLocaleString("pt-BR") : "—"}.
