@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Send, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePoliticians } from "@/hooks/useSocial";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadPostImage, removePostImage } from "@/lib/postImages";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,11 +24,30 @@ export function FeedComposer({ municipalityId, city }: { municipalityId?: string
   const [politicianId, setPoliticianId] = useState("");
   const [category, setCategory] = useState("Outro");
   const [sentiment, setSentiment] = useState("neutro");
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
   const selected = politicians?.find((person) => person.id === politicianId);
   const matches = (politicians ?? [])
     .filter((person) => ((person.ballot_name ?? "") + " " + person.civil_name).toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")))
     .slice(0, 6);
+
+  useEffect(() => {
+    if (!image) { setPreview(""); return; }
+    const url = URL.createObjectURL(image);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [image]);
+
+  function chooseImage(file?: File) {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      toast.error("Use uma imagem JPG, PNG, WEBP ou GIF.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) { toast.error("A imagem deve ter no máximo 5 MB."); return; }
+    setImage(file);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,24 +55,41 @@ export function FeedComposer({ municipalityId, city }: { municipalityId?: string
     if (!municipalityId) { toast.error("Não foi possível identificar o município do feed."); return; }
     if (!content.trim()) return;
     setBusy(true);
-    const { error } = await supabase.from("posts").insert({
-      author_id: user.id,
-      municipality_id: municipalityId,
-      politician_id: politicianId || null,
-      content: content.trim(),
-      sentiment,
-      category,
-      neighborhood: profile?.neighborhood ?? "",
-    });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setContent("");
-    setSearch("");
-    setPoliticianId("");
-    setCategory("Outro");
-    setSentiment("neutro");
-    await queryClient.invalidateQueries({ queryKey: ["feed"] });
-    toast.success("Sua publicação entrou no feed.");
+    let uploadedPath: string | undefined;
+    try {
+      let imageUrl: string | null = null;
+      if (image) {
+        const uploaded = await uploadPostImage(user.id, image);
+        uploadedPath = uploaded.path;
+        imageUrl = uploaded.url;
+      }
+      const { error } = await supabase.from("posts").insert({
+        author_id: user.id,
+        municipality_id: municipalityId,
+        politician_id: politicianId || null,
+        content: content.trim(),
+        sentiment,
+        category,
+        neighborhood: profile?.neighborhood ?? "",
+        image_url: imageUrl,
+      });
+      if (error) throw error;
+      setContent("");
+      setSearch("");
+      setPoliticianId("");
+      setCategory("Outro");
+      setSentiment("neutro");
+      setImage(null);
+      const imageInput = document.getElementById("feed-post-photo") as HTMLInputElement | null;
+      if (imageInput) imageInput.value = "";
+      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      toast.success("Sua publicação entrou no feed.");
+    } catch (error) {
+      if (uploadedPath) await removePostImage(uploadedPath);
+      toast.error(error instanceof Error ? error.message : "Não foi possível publicar.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const displayName = profile?.display_name ?? "Morador";
@@ -62,29 +99,13 @@ export function FeedComposer({ municipalityId, city }: { municipalityId?: string
         <Avatar className="mt-1 h-10 w-10 shrink-0"><AvatarFallback className="bg-primary/10 font-semibold text-primary">{displayName.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
         <div className="min-w-0 flex-1">
           <p className="mb-2 text-sm font-semibold">{user ? "Compartilhe sua voz" : "O que está acontecendo em " + city + "?"}</p>
-          <Textarea
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            onFocus={() => { if (!user) navigate("/auth"); }}
-            placeholder="O que você gostaria de compartilhar com a cidade?"
-            aria-label="Texto da publicação"
-            maxLength={1200}
-            rows={3}
-            className="min-h-20 resize-y rounded-xl border-0 bg-muted/60 px-4 py-3 shadow-none focus-visible:ring-1"
-          />
+          <Textarea value={content} onChange={(event) => setContent(event.target.value)} onFocus={() => { if (!user) navigate("/auth"); }} placeholder="O que você gostaria de compartilhar com a cidade?" aria-label="Texto da publicação" maxLength={1200} rows={3} className="min-h-20 resize-y rounded-xl border-0 bg-muted/60 px-4 py-3 shadow-none focus-visible:ring-1" />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {selected ? <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               Marcando: {selected.ballot_name ?? selected.civil_name}
               <button type="button" className="ml-1 rounded-full hover:bg-primary/10" aria-label="Remover político marcado" onClick={() => setPoliticianId("")}><X className="h-3 w-3" /></button>
             </div> : <div className="relative min-w-56 flex-1">
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Marcar político (opcional)"
-                aria-label="Buscar político para marcar"
-                autoComplete="off"
-                className="h-9 rounded-full bg-muted/50 text-sm"
-              />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Marcar político (opcional)" aria-label="Buscar político para marcar" autoComplete="off" className="h-9 rounded-full bg-muted/50 text-sm" />
               {search.trim() && <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border bg-popover p-1 shadow-lg">
                 {matches.map((person) => <button key={person.id} type="button" className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setPoliticianId(person.id); setSearch(""); }}>
                   <span className="block font-medium">{person.ballot_name ?? person.civil_name}</span>
@@ -94,23 +115,17 @@ export function FeedComposer({ municipalityId, city }: { municipalityId?: string
               </div>}
             </div>}
           </div>
+          {preview && <div className="relative mt-3 inline-block"><img src={preview} alt="Prévia da foto" className="max-h-64 max-w-full rounded-xl object-cover" /><Button type="button" variant="secondary" size="icon" className="absolute right-2 top-2" aria-label="Remover foto" onClick={() => { setImage(null); const input = document.getElementById("feed-post-photo") as HTMLInputElement | null; if (input) input.value = ""; }}><X className="h-4 w-4" /></Button></div>}
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="ghost" size="sm" disabled className="gap-2 rounded-full text-muted-foreground" title="Fotos poderão ser adicionadas em outra etapa"><ImagePlus className="h-4 w-4 text-emerald-600" />Foto em breve</Button>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 w-36 rounded-full text-xs" aria-label="Categoria da publicação"><SelectValue /></SelectTrigger>
-            <SelectContent>{["Economia", "Saúde", "Transporte", "Infraestrutura", "Educação", "Segurança", "Outro"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={sentiment} onValueChange={setSentiment}>
-            <SelectTrigger className="h-9 w-36 rounded-full text-xs" aria-label="Classificação da publicação"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="positivo">Positivo</SelectItem><SelectItem value="negativo">Negativo</SelectItem><SelectItem value="neutro">Neutro</SelectItem></SelectContent>
-          </Select>
+          <label htmlFor="feed-post-photo" onClick={(event) => { if (!user) { event.preventDefault(); navigate("/auth"); } }} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"><ImagePlus className="h-4 w-4 text-emerald-600" />Foto</label>
+          <input id="feed-post-photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(event) => chooseImage(event.target.files?.[0])} />
+          <Select value={category} onValueChange={setCategory}><SelectTrigger className="h-9 w-36 rounded-full text-xs" aria-label="Categoria da publicação"><SelectValue /></SelectTrigger><SelectContent>{["Economia", "Saúde", "Transporte", "Infraestrutura", "Educação", "Segurança", "Outro"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+          <Select value={sentiment} onValueChange={setSentiment}><SelectTrigger className="h-9 w-36 rounded-full text-xs" aria-label="Classificação da publicação"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="positivo">Positivo</SelectItem><SelectItem value="negativo">Negativo</SelectItem><SelectItem value="neutro">Neutro</SelectItem></SelectContent></Select>
         </div>
-        <Button type="submit" disabled={busy || !content.trim()} className="gap-2 rounded-full px-5">
-          <Send className="h-4 w-4" />{busy ? "Publicando…" : "Publicar"}
-        </Button>
+        <Button type="submit" disabled={busy || !content.trim()} className="gap-2 rounded-full px-5"><Send className="h-4 w-4" />{busy ? "Publicando…" : "Publicar"}</Button>
       </div>
       {!user && <p className="px-4 pb-3 text-xs text-muted-foreground">Entre ou cadastre-se para publicar, comentar e avaliar.</p>}
     </form>
