@@ -21,6 +21,7 @@ interface PostCardProps {
   onReport?: () => void;
   onLike?: () => void;
   likes?: number;
+  liked?: boolean;
 }
 
 const sentimentConfig = {
@@ -52,6 +53,7 @@ export const PostCard = ({
   onReport,
   onLike,
   likes = 0,
+  liked = false,
 }: PostCardProps) => {
   const config = sentimentConfig[sentiment];
 
@@ -114,6 +116,8 @@ export const PostCard = ({
             variant="ghost"
             size="sm"
             onClick={onLike}
+            aria-label={liked ? "Descurtir publicação" : "Curtir publicação"}
+            aria-pressed={liked}
             className="gap-2 text-muted-foreground hover:text-primary"
           >
             <ThumbsUp className="h-4 w-4" />
