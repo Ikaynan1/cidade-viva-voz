@@ -1,90 +1,15 @@
-import { User, Settings, LogOut, LogIn } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
-
-interface UserMenuProps {
-  isLoggedIn?: boolean;
-  userName?: string;
-  userAvatar?: string;
-}
-
-export const UserMenu = ({ 
-  isLoggedIn = false, 
-  userName = "Usuário",
-  userAvatar 
-}: UserMenuProps) => {
-  const navigate = useNavigate();
-
-  if (!isLoggedIn) {
-    return (
-      <Button 
-        variant="outline" 
-        onClick={() => navigate("/auth")}
-        className="gap-2"
-      >
-        <LogIn className="h-4 w-4" />
-        <span className="hidden sm:inline">Entrar</span>
-      </Button>
-    );
-  }
-
-  const initials = userName
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={userAvatar} alt={userName} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{userName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              Morador verificado
-            </p>
-          </div>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/profile")}>
-          <User className="mr-2 h-4 w-4" />
-          <span>Perfil</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/settings")}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Configurações</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          onClick={() => {
-            // TODO: Implement logout
-            navigate("/auth");
-          }}
-          className="text-destructive focus:text-destructive"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+import { User, Settings, LogOut, LogIn } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator,DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+export const UserMenu=()=>{
+ const navigate=useNavigate();const {user,profile,loading}=useAuth();
+ if(loading)return <span className="text-sm text-muted-foreground">Carregando…</span>;
+ if(!user)return <Button variant="outline" onClick={()=>navigate('/auth')}><LogIn className="h-4 w-4 mr-2"/>Entrar/Cadastrar</Button>;
+ const name=profile?.display_name??'Morador';
+ return <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" aria-label="Menu do usuário" className="gap-2"><User className="h-5 w-5"/><Avatar className="h-9 w-9"><AvatarImage src={profile?.avatar_url??undefined} alt={name}/><AvatarFallback>{name.slice(0,2).toUpperCase()}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><p className="p-2 text-sm font-medium">{name}</p><DropdownMenuSeparator/><DropdownMenuItem onClick={()=>navigate('/profile')}><User className="mr-2 h-4 w-4"/>Perfil</DropdownMenuItem><DropdownMenuItem onClick={()=>navigate('/settings')}><Settings className="mr-2 h-4 w-4"/>Configurações</DropdownMenuItem><DropdownMenuSeparator/><DropdownMenuItem className="text-destructive" onClick={async()=>{const {error}=await supabase.auth.signOut();if(error)toast.error(error.message);else navigate('/');}}><LogOut className="mr-2 h-4 w-4"/>Sair</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
 };
