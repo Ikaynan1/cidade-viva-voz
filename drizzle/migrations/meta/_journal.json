@@ -36,6 +36,13 @@
       "when": 1793215090282,
       "tag": "0004_social_post_images",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793216415717,
+      "tag": "0005_post_images_type_limit",
+      "breakpoints": true
     }
   ]
 }
