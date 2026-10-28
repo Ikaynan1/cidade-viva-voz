@@ -10,6 +10,8 @@ import { useLocations, usePoliticians } from "@/hooks/useSocial";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { FeedComposer } from "@/components/FeedComposer";
+import { PoliticianSearch } from "@/components/PoliticianSearch";
 
 export default function Index() {
   const [location, setLocation] = useState("");
@@ -61,6 +63,9 @@ export default function Index() {
               <SelectContent>{locations?.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} / {m.uf}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+
+          <PoliticianSearch />
+          <FeedComposer municipalityId={selected} city={city} />
 
           <div className="mb-4 space-y-3">
             <FeedFilters activeFilter={filter} onFilterChange={setFilter} />

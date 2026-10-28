@@ -18,7 +18,7 @@ export function usePoliticians() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("politicians")
-        .select("id,civil_name,ballot_name,photo_url")
+        .select("id,civil_name,ballot_name")
         .order("civil_name");
       if (error) throw error;
       return data;
