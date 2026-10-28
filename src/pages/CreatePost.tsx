@@ -1,3 +1,4 @@
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -64,8 +65,8 @@ export default function CreatePost() {
       }
       const { error } = await supabase.from("posts").insert({
         author_id: user.id, municipality_id: selected, politician_id: politician || null,
-        content: content.trim(), sentiment, category, neighborhood, image_url: imageUrl,
-      });
+        content: content.trim(), sentiment, category, neighborhood, ...(imageUrl ? { image_url: imageUrl } : {}),
+      } as TablesInsert<"posts">);
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["feed"] });
       toast.success("Publicação feita!");
