@@ -8,6 +8,9 @@ import Auth from "./pages/Auth";
 import CreatePost from "./pages/CreatePost";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "@/hooks/useAuth";
+import { RequireAuth } from "@/components/RequireAuth";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -17,14 +20,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AuthProvider>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/create-post" element={<CreatePost />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/create-post" element={<RequireAuth><CreatePost /></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><Settings /></RequireAuth>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   </QueryClientProvider>
