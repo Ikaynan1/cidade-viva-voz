@@ -360,6 +360,48 @@ export type Database = {
           },
         ]
       }
+      politician_evaluations: {
+        Row: {
+          created_at: string
+          id: string
+          politician_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          politician_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          politician_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "politician_evaluations_politician_id_fkey"
+            columns: ["politician_id"]
+            isOneToOne: false
+            referencedRelation: "politicians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "politician_evaluations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       politician_identifiers: {
         Row: {
           created_at: string
@@ -434,6 +476,234 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          category: string
+          content: string
+          created_at: string
+          id: string
+          moderation_status: string
+          municipality_id: string
+          neighborhood: string
+          politician_id: string | null
+          sentiment: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          moderation_status?: string
+          municipality_id: string
+          neighborhood?: string
+          politician_id?: string | null
+          sentiment?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          moderation_status?: string
+          municipality_id?: string
+          neighborhood?: string
+          politician_id?: string | null
+          sentiment?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_politician_id_fkey"
+            columns: ["politician_id"]
+            isOneToOne: false
+            referencedRelation: "politicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          city: string
+          created_at: string
+          display_name: string
+          id: string
+          municipality_id: string | null
+          neighborhood: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          city?: string
+          created_at?: string
+          display_name?: string
+          id: string
+          municipality_id?: string | null
+          neighborhood?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          city?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          municipality_id?: string | null
+          neighborhood?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reason: string
+          reporter_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reason: string
+          reporter_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reason?: string
+          reporter_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       states: {
         Row: {
@@ -552,6 +822,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      public_author: {
+        Args: { _id: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+        }[]
       }
     }
     Enums: {

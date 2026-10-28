@@ -8,6 +8,13 @@
       "when": 1792985326376,
       "tag": "0000_electoral_base",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793212698258,
+      "tag": "0001_social_auth_base",
+      "breakpoints": true
     }
   ]
 }
