@@ -18,6 +18,9 @@ export default function PoliticianProfile() {
       const { data: person, error: personError } = await supabase.from("politicians").select("id,civil_name,ballot_name").eq("id", id!).maybeSingle();
       if (personError) throw personError;
       if (!person) return null;
+      const { data: electedRecord, error: electedError } = await supabase.from("candidacies").select("id").eq("politician_id", person.id).eq("outcome", "eleito").limit(1);
+      if (electedError) throw electedError;
+      if (!electedRecord?.length) return null;
       const { data: posts, error: postError } = await supabase.from("posts").select("*").eq("politician_id", person.id).eq("moderation_status", "visible").order("created_at", { ascending: false }).limit(100);
       if (postError) throw postError;
       return { person, posts };

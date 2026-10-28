@@ -14,11 +14,19 @@ export function useLocations() {
 
 export function usePoliticians() {
   return useQuery({
-    queryKey: ["politicians-social"],
+    queryKey: ["politicians-elected"],
     queryFn: async () => {
+      const { data: candidacies, error: candidaciesError } = await supabase
+        .from("candidacies")
+        .select("politician_id")
+        .eq("outcome", "eleito");
+      if (candidaciesError) throw candidaciesError;
+      const electedIds = [...new Set((candidacies ?? []).map((row) => row.politician_id))];
+      if (electedIds.length === 0) return [];
       const { data, error } = await supabase
         .from("politicians")
         .select("id,civil_name,ballot_name")
+        .in("id", electedIds)
         .order("civil_name");
       if (error) throw error;
       return data;
