@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { PoliticianEvaluation } from "@/components/PoliticianEvaluation";
 import { SocialPost } from "@/components/SocialPost";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ export default function PoliticianProfile() {
     queryKey: ["politician-profile", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data: person, error: personError } = await supabase.from("politicians").select("id,civil_name,ballot_name,photo_url").eq("id", id!).maybeSingle();
+      const { data: person, error: personError } = await supabase.from("politicians").select("id,civil_name,ballot_name").eq("id", id!).maybeSingle();
       if (personError) throw personError;
       if (!person) return null;
       const { data: posts, error: postError } = await supabase.from("posts").select("*").eq("politician_id", person.id).eq("moderation_status", "visible").order("created_at", { ascending: false }).limit(100);
@@ -35,7 +35,7 @@ export default function PoliticianProfile() {
       {!isLoading && !error && !person && <p className="py-12 text-center text-muted-foreground">Este perfil de político não foi encontrado.</p>}
       {person && <>
         <Card className="mb-8 p-5 sm:p-7"><div className="flex flex-wrap items-center gap-4">
-          <Avatar className="h-20 w-20"><AvatarImage src={person.photo_url ?? undefined} alt={displayName} /><AvatarFallback className="text-2xl">{displayName?.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
+          <Avatar className="h-20 w-20"><AvatarFallback className="text-2xl">{displayName?.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
           <div className="flex-1"><h1 className="text-2xl font-bold">{displayName}</h1>{person.ballot_name && <p className="text-muted-foreground">{person.civil_name}</p>}<PoliticianEvaluation politicianId={person.id} /></div>
           <Button asChild><Link to={"/create-post?politician=" + person.id}>Fazer reclamação ou publicação</Link></Button>
         </div></Card>

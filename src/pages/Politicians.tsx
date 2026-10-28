@@ -5,7 +5,7 @@ import { usePoliticians } from "@/hooks/useSocial";
 import { UserMenu } from "@/components/UserMenu";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Politicians() {
   const { data: politicians, isLoading, error } = usePoliticians();
@@ -23,7 +23,7 @@ export default function Politicians() {
       <div className="relative mb-6"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Digite o nome do político" aria-label="Buscar político" /></div>
       {isLoading && <p className="py-8 text-center text-muted-foreground">Carregando políticos…</p>}
       {error && <p role="alert" className="text-destructive">Não foi possível carregar a lista de políticos.</p>}
-      <div className="space-y-3">{filtered.map((p) => <Link key={p.id} to={"/politicians/" + p.id} className="block"><Card className="flex items-center gap-4 p-4 transition hover:border-primary hover:shadow-sm"><Avatar className="h-12 w-12"><AvatarImage src={p.photo_url ?? undefined} alt={p.ballot_name ?? p.civil_name} /><AvatarFallback>{(p.ballot_name ?? p.civil_name).slice(0, 1).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{p.ballot_name ?? p.civil_name}</h2>{p.ballot_name && <p className="truncate text-sm text-muted-foreground">{p.civil_name}</p>}</div></Card></Link>)}</div>
+      <div className="space-y-3">{filtered.map((p) => <Link key={p.id} to={"/politicians/" + p.id} className="block"><Card className="flex items-center gap-4 p-4 transition hover:border-primary hover:shadow-sm"><Avatar className="h-12 w-12"><AvatarFallback>{(p.ballot_name ?? p.civil_name).slice(0, 1).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{p.ballot_name ?? p.civil_name}</h2>{p.ballot_name && <p className="truncate text-sm text-muted-foreground">{p.civil_name}</p>}</div></Card></Link>)}</div>
       {!isLoading && !error && filtered.length === 0 && <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">{search ? "Nenhum político encontrado para essa busca." : "A lista de políticos ainda não está disponível."}</p>}
     </main>
   </div>;
