@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,11 +67,12 @@ function useNatalElected() {
 
 const Person = ({ row }: { row: Row }) => {
   const mandate = Array.isArray(row.mandates) ? row.mandates[0] : row.mandates;
+  const displayName = row.ballot_name ?? row.politicians?.civil_name ?? "Político";
   return (
     <Card className="flex items-start justify-between gap-3 p-3">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="truncate font-semibold">{row.ballot_name ?? row.politicians?.civil_name}</p>
+          <Link to={"/politicians/" + row.politician_id} aria-label={"Abrir perfil de " + displayName} className="truncate font-semibold text-primary hover:underline">{displayName}</Link>
           <Badge variant="secondary">{officeLabel(row)}</Badge>
         </div>
         <p className="truncate text-xs text-muted-foreground">{row.politicians?.civil_name}</p>
