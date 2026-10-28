@@ -8,6 +8,27 @@
       "when": 1792985326376,
       "tag": "0000_electoral_base",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793212698258,
+      "tag": "0001_social_auth_base",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793212861044,
+      "tag": "0002_social_timestamp_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793212901139,
+      "tag": "0003_private_social_grants",
+      "breakpoints": true
     }
   ]
 }

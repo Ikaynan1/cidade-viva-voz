@@ -1,130 +1,16 @@
-import { useState } from "react";
-import { CitySelector } from "@/components/CitySelector";
-import { FeedFilters } from "@/components/FeedFilters";
-import { PostCard } from "@/components/PostCard";
-import { NatalOfficials } from "@/components/NatalOfficials";
-import { CreatePostButton } from "@/components/CreatePostButton";
-import { UserMenu } from "@/components/UserMenu";
-
-type FilterType = "todos" | "positivo" | "negativo" | "neutro";
-
-const Index = () => {
-  const [currentCity, setCurrentCity] = useState("Natal");
-  const [activeFilter, setActiveFilter] = useState<FilterType>("todos");
-  const [isLoggedIn] = useState(true); // TODO: Replace with real auth state
-
-  // Mock data - será substituído por dados reais do backend
-  const mockPosts = [
-    {
-      id: 1,
-      author: "Maria Silva",
-      verified: true,
-      sentiment: "positivo" as const,
-      category: "Infraestrutura",
-      neighborhood: "Centro",
-      date: "Há 2 horas",
-      content:
-        "A nova ciclovia inaugurada na Av. Principal está incrível! Finalmente podemos pedalar com segurança. Parabéns à gestão!",
-      likes: 24,
-    },
-    {
-      id: 2,
-      author: "João Santos",
-      verified: true,
-      sentiment: "negativo" as const,
-      category: "Saúde",
-      neighborhood: "Parque das Nações",
-      date: "Há 5 horas",
-      content:
-        "Posto de saúde do bairro está sem médicos há 3 dias. População desassistida e sem perspectiva de solução.",
-      likes: 45,
-    },
-    {
-      id: 3,
-      author: "Ana Costa",
-      verified: false,
-      sentiment: "neutro" as const,
-      category: "Transporte",
-      neighborhood: "Santos Reis",
-      date: "Há 1 dia",
-      content:
-        "Novos horários de ônibus foram implementados. Ainda precisamos avaliar se atendem melhor a demanda.",
-      likes: 12,
-    },
-  ];
-
-  const filteredPosts =
-    activeFilter === "todos"
-      ? mockPosts
-      : mockPosts.filter((post) => post.sentiment === activeFilter);
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            VozCivica
-          </h1>
-          <UserMenu 
-            isLoggedIn={isLoggedIn}
-            userName="Maria Silva"
-            userAvatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Maria"
-          />
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* City Selector */}
-        <div className="mb-6">
-          <CitySelector
-            currentCity={currentCity}
-            onCityChange={setCurrentCity}
-          />
-        </div>
-
-        {/* Politicians Section */}
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Políticos de {currentCity}</h2>
-          {currentCity === "Natal" ? (
-            <NatalOfficials />
-          ) : (
-            <p className="text-sm text-muted-foreground">Dados oficiais ainda não importados para {currentCity}.</p>
-          )}
-        </section>
-
-        {/* Feed Section */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Feed da Cidade</h2>
-          
-          {/* Filters */}
-          <div className="mb-4">
-            <FeedFilters
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-            />
-          </div>
-
-          {/* Posts */}
-          <div className="space-y-4">
-            {filteredPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                {...post}
-                onComment={() => console.log("Comment", post.id)}
-                onReport={() => console.log("Report", post.id)}
-                onLike={() => console.log("Like", post.id)}
-              />
-            ))}
-          </div>
-        </section>
-      </main>
-
-      {/* Floating Create Button */}
-      <CreatePostButton />
-    </div>
-  );
-};
-
-export default Index;
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { FeedFilters } from '@/components/FeedFilters';
+import { NatalOfficials } from '@/components/NatalOfficials';
+import { CreatePostButton } from '@/components/CreatePostButton';
+import { UserMenu } from '@/components/UserMenu';
+import { SocialPost } from '@/components/SocialPost';
+import { useLocations,usePoliticians } from '@/hooks/useSocial';
+import { supabase } from '@/integrations/supabase/client';
+import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
+export default function Index(){
+ const [location,setLocation]=useState('');const [politician,setPolitician]=useState('all');const [filter,setFilter]=useState<'todos'|'positivo'|'negativo'|'neutro'>('todos');
+ const {data:locations}=useLocations();const {data:politicians}=usePoliticians();const selected=location||locations?.find(m=>m.name.toUpperCase()==='NATAL')?.id;const city=locations?.find(m=>m.id===selected)?.name??'Natal';
+ const {data:posts,isLoading,error}=useQuery({queryKey:['feed',selected,politician,filter],enabled:!!selected,queryFn:async()=>{let q=supabase.from('posts').select('*').eq('municipality_id',selected??'').eq('moderation_status','visible').order('created_at',{ascending:false}).limit(100);if(filter!=='todos')q=q.eq('sentiment',filter);if(politician!=='all')q=q.eq('politician_id',politician);const {data,error}=await q;if(error)throw error;return data;}});
+ return <div className="min-h-screen bg-background"><header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b"><div className="container mx-auto px-4 py-3 flex items-center justify-between"><h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">VozCivica</h1><UserMenu/></div></header><main className="container mx-auto px-4 py-6 max-w-4xl"><div className="mb-6"><Select value={selected??''} onValueChange={setLocation}><SelectTrigger aria-label="Município"><SelectValue placeholder="Natal"/></SelectTrigger><SelectContent>{locations?.map(m=><SelectItem key={m.id} value={m.id}>{m.name} / {m.uf}</SelectItem>)}</SelectContent></Select></div><section className="mb-8"><h2 className="text-lg font-semibold mb-4">Políticos de {city}</h2>{city.toUpperCase()==='NATAL'?<NatalOfficials/>:<p className="text-sm text-muted-foreground">Dados oficiais ainda não importados para {city}.</p>}</section><section><h2 className="text-lg font-semibold mb-4">Feed da Cidade</h2><div className="mb-4 space-y-3"><FeedFilters activeFilter={filter} onFilterChange={setFilter}/><Select value={politician} onValueChange={setPolitician}><SelectTrigger aria-label="Filtrar por político"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">Todos os políticos</SelectItem>{politicians?.map(p=><SelectItem key={p.id} value={p.id}>{p.ballot_name??p.civil_name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-4">{isLoading&&<p>Carregando publicações…</p>}{error&&<p className="text-destructive">Não foi possível carregar as publicações.</p>}{posts?.length===0&&<p className="text-muted-foreground py-6">Nenhuma publicação encontrada.</p>}{posts?.map(post=><SocialPost key={post.id} post={post}/>)}</div></section></main><CreatePostButton/></div>;
+}

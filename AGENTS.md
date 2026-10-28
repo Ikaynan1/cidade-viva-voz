@@ -6,3 +6,5 @@
 - State/federal offices (governor, senators, deputies) attach to `uf` with `level` estadual/federal and `municipality_id` null — they are not city offices.
 - Municipalities store `ibge_code` and `tse_code` separately — the two codes differ.
 - Reference tables are public-read, admin-write (`has_role`); every import writes a `sync_logs` row and each record keeps `source_key`, `source_url`, `collected_at`.
+- Social data uses profile foreign keys, database RLS and immutable ownership triggers; private profile fields are exposed only through a limited public-author function to keep residence details private.
+- A shared AuthProvider validates users with getUser and resolves roles through has_role; profiles are provisioned by an auth lifecycle trigger without assigning privileges.

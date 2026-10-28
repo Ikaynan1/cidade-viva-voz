@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink } from "lucide-react";
+import { PoliticianEvaluation } from "./PoliticianEvaluation";
 
 type Row = {
   id: string;
+  politician_id: string;
   ballot_name: string | null;
   office_code: number;
   office_name: string;
@@ -35,11 +37,12 @@ function useNatal() {
   return useQuery({
     queryKey: ["natal-2024"],
     queryFn: async () => {
-      const { data: mun } = await supabase.from("municipalities").select("id").eq("tse_code", "17612").single();
+      const { data: mun, error: municipalityError } = await supabase.from("municipalities").select("id").eq("tse_code", "17612").single();
+      if (municipalityError || !mun) throw municipalityError ?? new Error("Natal não encontrado");
       const { data, error } = await supabase
         .from("candidacies")
-        .select("id,ballot_name,office_code,office_name,party_acronym,ballot_number,round,outcome,result_name,valid_votes,source_url,collected_at,politicians(civil_name),mandates(status)")
-        .eq("municipality_id", mun!.id)
+        .select("id,politician_id,ballot_name,office_code,office_name,party_acronym,ballot_number,round,outcome,result_name,valid_votes,source_url,collected_at,politicians(civil_name),mandates(status)")
+        .eq("municipality_id", mun.id)
         .order("valid_votes", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data as unknown as Row[];
@@ -59,6 +62,7 @@ const Person = ({ r }: { r: Row }) => (
         </Badge>
         {(() => { const m = Array.isArray(r.mandates) ? r.mandates[0] : r.mandates; return m ? <Badge variant="outline">{statusLabel[m.status]}</Badge> : null; })()}
       </div>
+      <PoliticianEvaluation politicianId={r.politician_id} />
     </div>
     {r.valid_votes != null && (
       <span className="text-sm font-semibold whitespace-nowrap">{r.valid_votes.toLocaleString("pt-BR")} votos</span>
@@ -102,7 +106,7 @@ export const NatalOfficials = () => {
       </Tabs>
       <p className="text-xs text-muted-foreground flex items-center gap-1">
         Fonte: TSE – Dados Abertos, Eleições Municipais 2024. Coletado em{" "}
-        {new Date(data[0].collected_at).toLocaleString("pt-BR")}.
+        {data[0] ? new Date(data[0].collected_at).toLocaleString("pt-BR") : "—"}.
         <a href="https://dadosabertos.tse.jus.br/dataset/candidatos-2024" target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-0.5">
           ver conjunto <ExternalLink className="h-3 w-3" />
         </a>
