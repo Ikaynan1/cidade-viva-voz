@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Search, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocations, usePoliticians } from "@/hooks/useSocial";
+import { uploadPostImage, removePostImage } from "@/lib/postImages";
 
 export default function CreatePost() {
   const navigate = useNavigate();
@@ -25,6 +26,8 @@ export default function CreatePost() {
   const [sentiment, setSentiment] = useState("neutro");
   const [category, setCategory] = useState("");
   const [content, setContent] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
   const selected = location || locations?.find((m) => m.name.toUpperCase() === "NATAL")?.id;
   const selectedPolitician = politicians?.find((p) => p.id === politician);
@@ -32,21 +35,43 @@ export default function CreatePost() {
     .filter((p) => (p.ballot_name + " " + p.civil_name).toLocaleLowerCase("pt-BR").includes(politicianSearch.trim().toLocaleLowerCase("pt-BR")))
     .slice(0, 8);
 
+  useEffect(() => {
+    if (!image) { setPreview(""); return; }
+    const url = URL.createObjectURL(image);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [image]);
+
+  function chooseImage(file?: File) {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) { toast.error("Use uma imagem JPG, PNG, WEBP ou GIF."); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("A imagem deve ter no máximo 5 MB."); return; }
+    setImage(file);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!user || !selected || !category || !content.trim()) return;
     const neighborhood = String(new FormData(event.currentTarget).get("neighborhood") ?? "").trim();
     setBusy(true);
+    let uploadedPath: string | undefined;
     try {
+      let imageUrl: string | null = null;
+      if (image) {
+        const uploaded = await uploadPostImage(user.id, image);
+        uploadedPath = uploaded.path;
+        imageUrl = uploaded.url;
+      }
       const { error } = await supabase.from("posts").insert({
         author_id: user.id, municipality_id: selected, politician_id: politician || null,
-        content: content.trim(), sentiment, category, neighborhood,
+        content: content.trim(), sentiment, category, neighborhood, image_url: imageUrl,
       });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["feed"] });
       toast.success("Publicação feita!");
       navigate("/");
     } catch (error) {
+      if (uploadedPath) await removePostImage(uploadedPath);
       toast.error(error instanceof Error ? error.message : "Não foi possível publicar. Tente novamente.");
     } finally {
       setBusy(false);
@@ -82,6 +107,12 @@ export default function CreatePost() {
           </div>
           <div className="space-y-2"><Label>Categoria</Label><Select value={category} onValueChange={setCategory} required><SelectTrigger aria-label="Categoria"><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger><SelectContent>{["Economia", "Saúde", "Transporte", "Infraestrutura", "Educação", "Segurança", "Outro"].map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-2"><Label htmlFor="content">Sua publicação</Label><Textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} maxLength={1200} required rows={6} placeholder="O que você gostaria de compartilhar?" /><p className="text-right text-xs text-muted-foreground">{content.length}/1200</p></div>
+          <div className="space-y-2">
+            <Label htmlFor="post-image">Foto (opcional)</Label>
+            <label htmlFor="post-image" className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed p-4 text-sm hover:bg-muted"><ImagePlus className="h-5 w-5 text-emerald-600" />Adicionar foto (até 5 MB)</label>
+            <Input id="post-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(event) => chooseImage(event.target.files?.[0])} />
+            {preview && <div className="relative"><img src={preview} alt="Prévia da foto da publicação" className="max-h-80 w-full rounded-lg object-cover" /><Button type="button" variant="secondary" size="icon" aria-label="Remover foto" className="absolute right-2 top-2" onClick={() => { setImage(null); const input = document.getElementById("post-image") as HTMLInputElement | null; if (input) input.value = ""; }}><X className="h-4 w-4" /></Button></div>}
+          </div>
           <div className="space-y-2"><Label htmlFor="neighborhood">Bairro (opcional)</Label><Input id="neighborhood" name="neighborhood" maxLength={100} defaultValue={profile?.neighborhood ?? ""} /></div>
           <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => navigate("/")}>Cancelar</Button><Button type="submit" disabled={busy || !category || !selected || !content.trim()}>{busy ? "Publicando…" : "Publicar"}</Button></div>
         </form>
