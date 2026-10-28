@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { authorName } from "@/hooks/useSocial";
+import { resolvePostImage } from "@/lib/postImages";
 import { useAuth } from "@/hooks/useAuth";
 import { PostCard } from "./PostCard";
 import { Button } from "./ui/button";
@@ -35,6 +36,12 @@ export function SocialPost({ post }: { post: Tables<"posts"> }) {
       return { author, likes: likes.data, comments: await Promise.all(commentsResult.data.map(async (c) => ({ ...c, name: await authorName(c.author_id) }))), politician: politician.data };
     },
   });
+  const { data: imageUrl } = useQuery({
+    queryKey: ["post-image", post.image_url],
+    queryFn: () => resolvePostImage(post.image_url),
+    enabled: !!post.image_url,
+    staleTime: 50 * 60 * 1000,
+  });
   function requireUser() { if (!user) { navigate("/auth"); return false; } return true; }
   async function action(run: () => PromiseLike<{ error: { message: string } | null }>) {
     setBusy(true);
@@ -54,7 +61,7 @@ export function SocialPost({ post }: { post: Tables<"posts"> }) {
   const politicianName = data?.politician?.ballot_name ?? data?.politician?.civil_name;
 
   return <div>
-    <PostCard author={data?.author ?? "Morador"} verified={false} sentiment={post.sentiment as "positivo" | "negativo" | "neutro"} category={post.category} neighborhood={post.neighborhood} date={new Date(post.created_at).toLocaleString("pt-BR")} content={post.content} imageUrl={(post as { image_url?: string | null }).image_url ?? undefined} politician={post.politician_id && politicianName ? { id: post.politician_id, name: politicianName } : undefined} likes={data?.likes.length ?? 0} liked={liked}
+    <PostCard author={data?.author ?? "Morador"} verified={false} sentiment={post.sentiment as "positivo" | "negativo" | "neutro"} category={post.category} neighborhood={post.neighborhood} date={new Date(post.created_at).toLocaleString("pt-BR")} content={post.content} imageUrl={imageUrl} politician={post.politician_id && politicianName ? { id: post.politician_id, name: politicianName } : undefined} likes={data?.likes.length ?? 0} liked={liked}
       onLike={() => { if (!requireUser() || !user || busy) return; void action(() => liked ? supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id) : supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id })); }}
       onComment={() => setComments(!comments)} onReport={() => { if (requireUser()) setReport(true); }} />
     {user?.id === post.author_id && post.moderation_status === "visible" && <div className="mt-1 flex gap-2"><Button variant="ghost" size="sm" disabled={busy} onClick={() => setEdit(true)}>Editar</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => { if (window.confirm("Excluir esta publicação?")) void action(() => supabase.from("posts").delete().eq("id", post.id)); }}>Excluir</Button></div>}
