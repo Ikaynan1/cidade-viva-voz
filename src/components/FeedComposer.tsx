@@ -1,3 +1,4 @@
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -71,8 +72,8 @@ export function FeedComposer({ municipalityId, city }: { municipalityId?: string
         sentiment,
         category,
         neighborhood: profile?.neighborhood ?? "",
-        image_url: imageUrl,
-      });
+        ...(imageUrl ? { image_url: imageUrl } : {}),
+      } as TablesInsert<"posts">);
       if (error) throw error;
       setContent("");
       setSearch("");
