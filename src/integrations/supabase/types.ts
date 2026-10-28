@@ -562,7 +562,6 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          image_url: string | null
           moderation_status: string
           municipality_id: string
           neighborhood: string
@@ -576,7 +575,6 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          image_url?: string | null
           moderation_status?: string
           municipality_id: string
           neighborhood?: string
@@ -590,7 +588,6 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          image_url?: string | null
           moderation_status?: string
           municipality_id?: string
           neighborhood?: string
