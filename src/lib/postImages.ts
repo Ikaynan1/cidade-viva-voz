@@ -18,10 +18,18 @@ export async function uploadPostImage(userId: string, file: File) {
     upsert: false,
   });
   if (error) throw error;
-  const url = supabase.storage.from("post-images").getPublicUrl(path).data.publicUrl;
-  return { path, url };
+  // Bucket is private (workspace blocks public buckets); store the path and resolve signed URLs on display.
+  return { path, url: path };
 }
 
 export async function removePostImage(path: string) {
   await supabase.storage.from("post-images").remove([path]);
+}
+
+export async function resolvePostImage(value?: string | null) {
+  if (!value) return undefined;
+  if (/^https?:\/\//.test(value)) return value;
+  const { data, error } = await supabase.storage.from("post-images").createSignedUrl(value, 60 * 60);
+  if (error) return undefined;
+  return data.signedUrl;
 }
